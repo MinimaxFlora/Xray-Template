@@ -1,0 +1,54 @@
+{
+    "log": {
+        "loglevel": "warning"              // 日志等级，设为 warning 仅记录警告和错误信息，避免日常运行刷屏
+    },
+    "inbounds": [
+        {
+            "tag": "IN-Hysteria2",            // 传入连接的标签（名称），用于在路由规则中引用或在日志中辨识
+            "listen": "0.0.0.0",              // 监听地址，“0.0.0.0”表示监听本机所有网卡的 IPv4 地址
+            "port": 11451,                    // 服务端监听的端口号
+            "protocol": "hysteria",           // 使用的底层协议类型，这里是 hysteria
+            "settings": {
+                "version": 2                  // 协议版本，指定为 2（即 Hysteria 2）
+            },
+            "streamSettings": {
+                "network": "hysteria",        // 传输层网络类型，对应 hysteria 专有网络传输
+                "security": "tls",            // 传输安全层协议，Hysteria 2 必须基于 TLS (QUIC) 运行
+                "tlsSettings": {
+                    "serverName": "114514",    // SNI (服务器名称指示)，需与证书域名或客户端配置相匹配
+                    "alpn": [
+                        "h3"                  // 应用层协议协商，Hysteria 2 基于 QUIC/HTTP3，必须显式声明 "h3"
+                    ],
+                    "certificates": [
+                        {
+                            "usage": "encipherment", // 证书用途：加密传输
+                            "certificateFile": "/114514/cert.pem", // 服务器端 TLS 证书公钥文件路径
+                            "keyFile": "/114514/key.pem"         // 服务器端 TLS 证书私钥文件路径
+                        }
+                    ]
+                },
+                "hysteriaSettings": {
+                    "version": 2,             // 传输设置里的协议版本声明，保持与主设置一致
+                    "auth": "114514"          // Hysteria 2 连接密码（密钥），客户端连接时必须提供相同的密码
+                },
+                "finalmask": {
+                    "quicParams": {
+                        "congestion": "brutal",      // 拥塞控制算法，这里启用了专为 Hysteria 2 打造的 "brutal" 暴力拥塞控制
+                        "brutalUp": "100 mbps",      // Brutal 拥塞控制的上行参考速率上限
+                        "brutalDown": "100 mbps"     // Brutal 拥塞控制的下行参考速率上限
+                    }
+                }
+            }
+        }
+    ],
+    "outbounds": [
+        {
+            "protocol": "freedom",            // “freedom” 直连协议，不对流量做代理，直接让服务器以原生的公网 IP 访问目标
+            "tag": "direct"                   // 该直连出站的标签名称，常用于路由规则中指定走此通道
+        },
+        {
+            "protocol": "blackhole",          // “blackhole” 黑洞协议，用于直接丢弃/拦截指定的流量
+            "tag": "block"                    // 该黑洞出站的标签名称，常用于路由规则中指定拦截广告或特定请求
+        }
+    ]
+}
