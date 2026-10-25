@@ -1,0 +1,58 @@
+{
+    "log": {
+        "loglevel": "warning"              // 日志等级设为 warning，减少日常运行中的刷屏信息
+    },
+    "routing": {
+        "rules": [
+            {
+                "ip": [
+                    "geoip:private"           // 匹配局域网及私有 IP 地址（如路由器管理后台、本地打印机等）
+                ],
+                "outboundTag": "direct"       // 强制让本地私有 IP 流量走直连，不绕往代理服务器
+            }
+        ]
+    },
+    "inbounds": [
+        {
+            "port": 10800,                    // 本地监听端口，你的客户端软件或浏览器将通过此端口连接代理
+            "listen": "127.0.0.1",            // 本地监听地址，仅允许本机访问
+            "protocol": "socks",              // 入站协议类型为 SOCKS5
+            "settings": {
+                "udp": true                   // 开启 UDP 转发支持（游戏、DNS 查询、语音等必需）
+            }
+        }
+    ],
+    "outbounds": [
+        {
+            "tag": "proxy",                   // 代理出站标签，负责将流量打包并发往远端 Hysteria 2 服务器
+            "protocol": "hysteria",
+            "settings": {
+                "address": "server ip",       // 【请修改】这里填你 VPS 的真实公网 IP 地址
+                "port": 11451,                // 远端服务器的 Hysteria 2 监听端口
+                "version": 2                  // 协议版本，指定为 2
+            },
+            "streamSettings": {
+                "network": "hysteria",        // 传输层网络类型为 hysteria 专有网络
+                "security": "tls",            // 传输安全协议为 TLS
+                "tlsSettings": {
+                    "serverName": "114514"    // SNI (服务器名称指示)，必须与服务端完全一致
+                },
+                "hysteriaSettings": {
+                    "version": 2,             // 客户端传输设置中的协议版本声明
+                    "auth": "114514"          // Hysteria 2 认证密码，必须与服务端设置完全一致
+                },
+                "finalmask": {
+                    "quicParams": {
+                        "congestion": "brutal",      // 拥塞控制算法，配合服务端开启 brutal 暴力加速
+                        "brutalUp": "30 mbps",       // 客户端声明的上行带宽上限（可根据实际宽带调整）
+                        "brutalDown": "100 mbps"     // 客户端声明的下行带宽上限（可根据实际宽带调整）
+                    }
+                }
+            }
+        },
+        {
+            "tag": "direct",                  // 直连出站标签，供上方 routing 规则引用
+            "protocol": "freedom"             // 使用 freedom 协议直接访问公网
+        }
+    ]
+}
